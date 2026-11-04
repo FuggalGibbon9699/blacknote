@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">BlackNote</string>
+    <string name="channel_notes">Notes</string>
+    <string name="channel_notes_desc">Pinned note reminders</string>
+</resources>
