@@ -8,6 +8,34 @@ sealed class Expr {
 
 object ExprEngine {
 
+    val LATEX_SYMBOLS = mapOf(
+        "pi" to "π", "cdot" to "·", "times" to "×", "div" to "÷",
+        "alpha" to "α", "beta" to "β", "gamma" to "γ", "delta" to "δ", "Delta" to "Δ",
+        "theta" to "θ", "Theta" to "Θ", "lambda" to "λ", "mu" to "μ", "nu" to "ν",
+        "rho" to "ρ", "sigma" to "σ", "tau" to "τ", "phi" to "φ", "omega" to "ω",
+        "Omega" to "Ω", "varepsilon" to "ε", "infty" to "∞", "pm" to "±", "mp" to "∓",
+        "approx" to "≈", "leq" to "≤", "geq" to "≥", "neq" to "≠",
+        "to" to "→", "rightarrow" to "→", "leftarrow" to "←",
+        "partial" to "∂", "nabla" to "∇", "circ" to "°"
+    )
+
+    private val GREEK = setOf(
+        "alpha", "beta", "gamma", "delta", "epsilon", "varepsilon", "zeta", "eta", "theta",
+        "iota", "kappa", "lambda", "mu", "nu", "xi", "omicron", "pi", "rho", "sigma",
+        "tau", "upsilon", "phi", "chi", "psi", "omega",
+        "Gamma", "Delta", "Theta", "Lambda", "Xi", "Pi", "Sigma", "Upsilon", "Phi", "Psi", "Omega"
+    )
+
+    fun displaySymbol(name: String): String = LATEX_SYMBOLS[name] ?: name
+
+    fun latexVar(name: String): String = if (name in GREEK) "\\$name" else name
+
+    fun varsOf(e: Expr): List<String> = when (e) {
+        is Expr.Num -> emptyList()
+        is Expr.Var -> listOf(e.name)
+        is Expr.Bin -> varsOf(e.l) + varsOf(e.r)
+    }
+
     fun parseEquation(input: String): Pair<Expr, Expr>? {
         var depth = 0
         for ((idx, c) in input.withIndex()) {
@@ -94,7 +122,7 @@ object ExprEngine {
 
     fun toLatex(e: Expr): String = when (e) {
         is Expr.Num -> formatNum(e.value)
-        is Expr.Var -> e.name
+        is Expr.Var -> latexVar(e.name)
         is Expr.Bin -> when (e.op) {
             '+' -> "${toLatex(e.l)} + ${toLatex(e.r)}"
             '-' -> "${toLatex(e.l)} - ${toLatex(e.r)}"

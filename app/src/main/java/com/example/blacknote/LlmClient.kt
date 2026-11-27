@@ -36,7 +36,9 @@ object LlmClient {
         - "expr": the same equation as a plain expression with one '=' and operators + - * / ^ ( ),
           variables as plain single-letter symbols, e.g. "F = m * a". Use ^ for powers.
         - "variables": array of {"symbol","name","unit"} covering EVERY symbol used in
-          formula/expr; symbols must be single Latin letters matching expr exactly.
+          formula/expr. Symbols are single Latin letters, or a greek letter name like
+          "gamma" for greek symbols (formula uses \\gamma, expr uses "gamma").
+          expr must use exactly the same symbol text.
         - "estimate": one short sentence: plug in the given numbers and state the result with
           units, or state exactly what data is missing.
         If the input is only a topic or quantity name (e.g. "force", "kinetic energy"),
@@ -121,7 +123,7 @@ object LlmClient {
                 raw = null
             )
             if (sol.formula.isBlank() && sol.expr.isBlank()) {
-                Solution("", "", "", emptyList(), "", content)
+                Solution("", "", "", emptyList(), "", sol.explanation.ifBlank { content })
             } else {
                 sol
             }

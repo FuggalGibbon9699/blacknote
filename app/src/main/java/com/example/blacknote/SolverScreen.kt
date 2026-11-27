@@ -110,12 +110,18 @@ fun SolverScreen() {
         onDispose { recognizer?.destroy() }
     }
 
+    fun resultText(symbol: String, value: Double): String {
+        val sol = solution ?: return "${ExprEngine.displaySymbol(symbol)} = ${ExprEngine.formatNum(value)}"
+        val unit = sol.variables.find { it.symbol == symbol }?.unit ?: ""
+        return "${ExprEngine.displaySymbol(symbol)} = ${ExprEngine.formatNum(value)} $unit".trim()
+    }
+
     fun refreshFormula() {
         val sol = solution ?: return
         val eq = equation
         formulaLatex = when {
             solvedFor != null && solvedExpr != null ->
-                "$solvedFor = ${ExprEngine.toLatex(ExprEngine.substitute(solvedExpr!!, values))}"
+                "${ExprEngine.toLatex(Expr.Var(solvedFor!!))} = ${ExprEngine.toLatex(ExprEngine.substitute(solvedExpr!!, values))}"
             eq != null -> ExprEngine.toLatexEquation(
                 ExprEngine.substitute(eq.first, values),
                 ExprEngine.substitute(eq.second, values)
@@ -125,18 +131,32 @@ fun SolverScreen() {
     }
 
     fun computeIfComplete() {
-        val sol = solution ?: return
         val eq = equation ?: return
-        if (sol.variables.any { !values.containsKey(it.symbol) }) return
-        val target = solvedFor ?: (eq.first as? Expr.Var)?.name
         try {
-            val value = if (target != null && solvedExpr != null) {
-                ExprEngine.eval(ExprEngine.substitute(solvedExpr!!, values), emptyMap())
-            } else {
-                ExprEngine.eval(ExprEngine.substitute(eq.second, values), emptyMap())
+            if (solvedFor != null && solvedExpr != null) {
+                val se = solvedExpr!!
+                if (ExprEngine.varsOf(se).all { values.containsKey(it) }) {
+                    result = resultText(
+                        solvedFor!!,
+                        ExprEngine.eval(ExprEngine.substitute(se, values), emptyMap())
+                    )
+                }
+                return
             }
-            val unit = sol.variables.find { it.symbol == target }?.unit ?: ""
-            result = "$target = ${ExprEngine.formatNum(value)} $unit".trim()
+            val lVars = ExprEngine.varsOf(eq.first)
+            val rVars = ExprEngine.varsOf(eq.second)
+            when {
+                rVars.isNotEmpty() && rVars.all { values.containsKey(it) } && eq.first is Expr.Var ->
+                    result = resultText(
+                        eq.first.name,
+                        ExprEngine.eval(ExprEngine.substitute(eq.second, values), emptyMap())
+                    )
+                lVars.isNotEmpty() && lVars.all { values.containsKey(it) } && eq.second is Expr.Var ->
+                    result = resultText(
+                        eq.second.name,
+                        ExprEngine.eval(ExprEngine.substitute(eq.first, values), emptyMap())
+                    )
+            }
         } catch (e: Exception) {
             result = null
             error = "Calculation error: ${e.message}"
@@ -516,7 +536,7 @@ private fun AnswerView(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "${v.symbol} — ${v.name}",
+                    text = "${ExprEngine.displaySymbol(v.symbol)} — ${v.name}",
                     color = Color.White,
                     fontSize = 14.sp,
                     modifier = Modifier.weight(1f)
