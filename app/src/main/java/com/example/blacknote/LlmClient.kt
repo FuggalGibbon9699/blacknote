@@ -39,7 +39,10 @@ object LlmClient {
           formula/expr; symbols must be single Latin letters matching expr exactly.
         - "estimate": one short sentence: plug in the given numbers and state the result with
           units, or state exactly what data is missing.
-        If the input is not a physics/engineering problem, reply with {"raw": "short plain answer"}.
+        If the input is only a topic or quantity name (e.g. "force", "kinetic energy"),
+        still return the main defining formula and its variables — use {"raw": "..."} only
+        for clearly non-physics input like greetings or jokes.
+        Do not wrap the JSON in markdown fences and do not add any text before or after it.
     """.trimIndent()
 
     suspend fun solve(config: Config, problem: String): Result<Solution> =
@@ -91,11 +94,14 @@ object LlmClient {
         }
 
     private fun parseSolution(content: String): Solution {
-        var cleaned = content
+        var cleaned = content.trim()
         if (cleaned.startsWith("```")) {
             cleaned = cleaned.removePrefix("```json").removePrefix("```").trim()
             if (cleaned.endsWith("```")) cleaned = cleaned.removeSuffix("```").trim()
         }
+        val start = cleaned.indexOf('{')
+        val end = cleaned.lastIndexOf('}')
+        if (start >= 0 && end > start) cleaned = cleaned.substring(start, end + 1)
         return try {
             val root = JSONObject(cleaned)
             if (root.has("raw")) {
@@ -106,7 +112,7 @@ object LlmClient {
                 val o = arr.getJSONObject(i)
                 LlmVariable(o.optString("symbol"), o.optString("name"), o.optString("unit"))
             }
-            Solution(
+            val sol = Solution(
                 explanation = root.optString("explanation"),
                 formula = root.optString("formula"),
                 expr = root.optString("expr"),
@@ -114,6 +120,11 @@ object LlmClient {
                 estimate = root.optString("estimate"),
                 raw = null
             )
+            if (sol.formula.isBlank() && sol.expr.isBlank()) {
+                Solution("", "", "", emptyList(), "", content)
+            } else {
+                sol
+            }
         } catch (e: Exception) {
             Solution("", "", "", emptyList(), "", content)
         }
