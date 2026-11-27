@@ -15,22 +15,40 @@ only be removed by deleting the note inside the app.
 - A `BOOT_COMPLETED` receiver re-posts all notes after a reboot.
 - Deleting a note in the app is the only way to clear its notification.
 
+## App drawer
+
+Tap the **☰ menu** (top left) or **swipe from the left edge** to open the drawer:
+**Notes** and **Solver** are the apps, and **API settings** sits at the bottom
+under a key icon. The top bar respects status bar / camera cutout / navigation
+bar insets on any phone.
+
 ## Physics / engineering solver
 
-Tap the mic icon on the Notes screen to open the **solver**: a blank black page
-with a single microphone button. State your physics or engineering problem out
-loud (or type it in the field at the bottom). The transcript is sent to an LLM
-(Mistral, OpenAI, or any OpenAI-compatible custom endpoint) which picks the best
-formula(s), explains every variable with its unit, and gives an estimate of the
-answer. Pure black background, white text, fluid Compose animations.
+The **solver** is a blank black page with a single solid white microphone button.
+State your physics or engineering problem out loud (or type it in the rounded
+field at the bottom). The transcript is sent to an LLM (Mistral, OpenAI, or any
+OpenAI-compatible custom endpoint) which returns a structured answer: a short
+explanation on top, the best formula as a big interactive LaTeX equation in the
+middle, and the variables with units listed below.
 
-API connection (gear icon on the solver screen, stored locally on the device):
+The equation is interactive (all rearranging and calculating happens in-app,
+not via the LLM):
+
+- **Hold down a variable** in the formula → the equation is rearranged to express
+  that variable (e.g. `F = m·a` → hold `a` → `a = F/m`) with a fluid animation.
+- **Tap a variable** → a numeric keyboard pops up; entered values are substituted
+  into the equation. Once every variable has a value, the app evaluates the
+  result with its built-in expression calculator and shows e.g. `a = 3 m/s²`.
+
+API connection (**☰ → API settings**, stored locally on the device):
 
 1. Pick a provider: **Mistral** (`api.mistral.ai`), **OpenAI**
    (`api.openai.com`), or **Custom** (any OpenAI-compatible base URL, e.g. a
    local Ollama/LM Studio server at `http://192.168.x.x:1234/v1`).
 2. Paste your API key (for local servers without auth, any non-empty value works).
-3. Optionally set the model (defaults: `mistral-large-latest`, `gpt-4o-mini`).
+3. Pick a model: for Mistral there are quick presets (Smallest / Small / Medium /
+   Large / Latest) plus a free-text field for any other capable model
+   (defaults: `mistral-large-latest`, `gpt-4o-mini`).
 
 Voice input uses the on-device `SpeechRecognizer`, so no extra API key is needed
 for transcription; the app only needs `INTERNET` for the LLM call and
@@ -62,11 +80,15 @@ Or open the project folder in Android Studio and press Run.
 
 ```
 app/src/main/java/com/example/blacknote/
-├── MainActivity.kt          black Compose UI: add / list / delete notes
-├── SolverActivity.kt        voice-in physics/engineering solver screen
-├── LlmClient.kt             chat-completions call (Mistral / OpenAI / custom)
+├── MainActivity.kt          app root: navigation drawer + top bar (safe-area aware)
+├── SolverScreen.kt          voice-in physics/engineering solver screen
+├── SettingsScreen.kt        API settings (provider / key / model presets / URL)
+├── LlmClient.kt             chat-completions call, structured JSON answer parsing
+├── Expr.kt                  in-app expression parser / evaluator / equation rearranger
+├── LatexView.kt             mini LaTeX renderer with interactive variable annotations
+├── Ui.kt                    shared black-theme text field styles
+├── MarkdownText.kt          minimal Markdown-lite renderer for raw LLM answers
 ├── SolverStore.kt           SharedPreferences for provider / key / model / URL
-├── MarkdownText.kt          minimal Markdown-lite renderer for LLM answers
 ├── Note.kt                  note model
 ├── NoteStore.kt             SharedPreferences persistence
 ├── NoteNotifier.kt          posts ongoing (non-dismissible) notifications

@@ -33,7 +33,21 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.foundation.layout.displayCutoutPadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material.icons.filled.Key
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Note
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.NavigationDrawerItemDefaults
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -56,7 +70,103 @@ class MainActivity : ComponentActivity() {
         NoteNotifier.showAll(this)
         setContent {
             MaterialTheme {
-                NoteApp()
+                AppRoot()
+            }
+        }
+    }
+}
+
+private enum class Dest(val label: String) {
+    Notes("Notes"), Solver("Solver"), Settings("API settings")
+}
+
+@Composable
+fun AppRoot() {
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+    var dest by remember { mutableStateOf(Dest.Notes) }
+
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        gesturesEnabled = true,
+        drawerContent = {
+            ModalDrawerSheet(
+                drawerContainerColor = Color.Black,
+                drawerContentColor = Color.White
+            ) {
+                Text(
+                    text = "BlackNote",
+                    color = Color.White,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(20.dp)
+                )
+                val itemColors = NavigationDrawerItemDefaults.colors(
+                    selectedContainerColor = Color.DarkGray,
+                    unselectedContainerColor = Color.Black,
+                    selectedTextColor = Color.White,
+                    unselectedTextColor = Color.Gray,
+                    selectedIconColor = Color.White,
+                    unselectedIconColor = Color.Gray
+                )
+                NavigationDrawerItem(
+                    label = { Text("Notes") },
+                    selected = dest == Dest.Notes,
+                    onClick = { dest = Dest.Notes; scope.launch { drawerState.close() } },
+                    icon = { Icon(Icons.Default.Note, contentDescription = null) },
+                    colors = itemColors,
+                    modifier = Modifier.padding(horizontal = 12.dp)
+                )
+                NavigationDrawerItem(
+                    label = { Text("Solver") },
+                    selected = dest == Dest.Solver,
+                    onClick = { dest = Dest.Solver; scope.launch { drawerState.close() } },
+                    icon = { Icon(Icons.Default.Mic, contentDescription = null) },
+                    colors = itemColors,
+                    modifier = Modifier.padding(horizontal = 12.dp)
+                )
+                Spacer(Modifier.weight(1f))
+                HorizontalDivider(color = Color.DarkGray)
+                NavigationDrawerItem(
+                    label = { Text("API settings") },
+                    selected = dest == Dest.Settings,
+                    onClick = { dest = Dest.Settings; scope.launch { drawerState.close() } },
+                    icon = { Icon(Icons.Default.Key, contentDescription = null) },
+                    colors = itemColors,
+                    modifier = Modifier.padding(horizontal = 12.dp)
+                )
+            }
+        }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black)
+                .statusBarsPadding()
+                .displayCutoutPadding()
+                .navigationBarsPadding()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                    Icon(Icons.Default.Menu, contentDescription = "Menu", tint = Color.White)
+                }
+                Text(
+                    text = dest.label,
+                    color = Color.White,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(start = 8.dp)
+                )
+            }
+            when (dest) {
+                Dest.Notes -> NoteApp()
+                Dest.Solver -> SolverScreen()
+                Dest.Settings -> SettingsScreen()
             }
         }
     }
@@ -87,28 +197,7 @@ fun NoteApp() {
             .background(Color.Black)
             .padding(20.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Notes",
-                color = Color.White,
-                fontSize = 30.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(1f)
-            )
-            IconButton(onClick = {
-                context.startActivity(Intent(context, SolverActivity::class.java))
-            }) {
-                Icon(
-                    imageVector = Icons.Default.Mic,
-                    contentDescription = "Physics solver",
-                    tint = Color.Gray
-                )
-            }
-        }
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(8.dp))
 
         OutlinedTextField(
             value = text,

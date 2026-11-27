@@ -8,6 +8,17 @@ import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
 
+data class LlmVariable(val symbol: String, val name: String, val unit: String)
+
+data class Solution(
+    val explanation: String,
+    val formula: String,
+    val expr: String,
+    val variables: List<LlmVariable>,
+    val estimate: String,
+    val raw: String?
+)
+
 object LlmClient {
 
     data class Config(
@@ -19,19 +30,19 @@ object LlmClient {
 
     private val SYSTEM_PROMPT = """
         You are a concise physics and engineering problem solver.
-        For the user's problem, reply in Markdown-lite with exactly these sections:
-        1. **Topic** — the branch of physics/engineering and the key idea, one line.
-        2. **Formula** — the best formula(s) for the problem in Unicode math or plain
-           text, one per line, each with a one-line note on why it fits.
-        3. **Variables** — a '- ' bullet list defining EVERY symbol used: symbol,
-           meaning and unit.
-        4. **Estimate** — plug the given numbers into the formula and give the result
-           with units; if data is missing, state exactly what is missing.
-        Use only **bold**, *italic*, `code`, '# ' headers and '- ' bullets.
-        No filler, no preamble, no apologies.
+        Reply with ONLY a JSON object (no markdown fences, no extra text) with exactly these keys:
+        - "explanation": one or two short plain sentences naming the topic and the key idea.
+        - "formula": the single best formula as a LaTeX string, e.g. "F = m \\cdot a".
+        - "expr": the same equation as a plain expression with one '=' and operators + - * / ^ ( ),
+          variables as plain single-letter symbols, e.g. "F = m * a". Use ^ for powers.
+        - "variables": array of {"symbol","name","unit"} covering EVERY symbol used in
+          formula/expr; symbols must be single Latin letters matching expr exactly.
+        - "estimate": one short sentence: plug in the given numbers and state the result with
+          units, or state exactly what data is missing.
+        If the input is not a physics/engineering problem, reply with {"raw": "short plain answer"}.
     """.trimIndent()
 
-    suspend fun solve(config: Config, problem: String): Result<String> =
+    suspend fun solve(config: Config, problem: String): Result<Solution> =
         withContext(Dispatchers.IO) {
             var conn: HttpURLConnection? = null
             try {
@@ -70,7 +81,7 @@ object LlmClient {
                         .getJSONObject(0)
                         .getJSONObject("message")
                         .getString("content")
-                    Result.success(content.trim())
+                    Result.success(parseSolution(content.trim()))
                 }
             } catch (e: Exception) {
                 Result.failure(e)
@@ -78,6 +89,35 @@ object LlmClient {
                 conn?.disconnect()
             }
         }
+
+    private fun parseSolution(content: String): Solution {
+        var cleaned = content
+        if (cleaned.startsWith("```")) {
+            cleaned = cleaned.removePrefix("```json").removePrefix("```").trim()
+            if (cleaned.endsWith("```")) cleaned = cleaned.removeSuffix("```").trim()
+        }
+        return try {
+            val root = JSONObject(cleaned)
+            if (root.has("raw")) {
+                return Solution("", "", "", emptyList(), "", root.getString("raw"))
+            }
+            val arr = root.optJSONArray("variables") ?: JSONArray()
+            val vars = (0 until arr.length()).map { i ->
+                val o = arr.getJSONObject(i)
+                LlmVariable(o.optString("symbol"), o.optString("name"), o.optString("unit"))
+            }
+            Solution(
+                explanation = root.optString("explanation"),
+                formula = root.optString("formula"),
+                expr = root.optString("expr"),
+                variables = vars,
+                estimate = root.optString("estimate"),
+                raw = null
+            )
+        } catch (e: Exception) {
+            Solution("", "", "", emptyList(), "", content)
+        }
+    }
 
     private fun chatUrl(config: Config): String = when (config.provider) {
         SolverStore.PROVIDER_OPENAI -> "https://api.openai.com/v1/chat/completions"
