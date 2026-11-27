@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -86,12 +87,27 @@ fun NoteApp() {
             .background(Color.Black)
             .padding(20.dp)
     ) {
-        Text(
-            text = "Notes",
-            color = Color.White,
-            fontSize = 30.sp,
-            fontWeight = FontWeight.Bold
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Notes",
+                color = Color.White,
+                fontSize = 30.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f)
+            )
+            IconButton(onClick = {
+                context.startActivity(Intent(context, SolverActivity::class.java))
+            }) {
+                Icon(
+                    imageVector = Icons.Default.Mic,
+                    contentDescription = "Physics solver",
+                    tint = Color.Gray
+                )
+            }
+        }
         Spacer(Modifier.height(20.dp))
 
         OutlinedTextField(
