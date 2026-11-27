@@ -22,10 +22,6 @@
             </intent-filter>
         </activity>
 
-        <activity
-            android:name=".SolverActivity"
-            android:exported="false" />
-
         <receiver
             android:name=".BootReceiver"
             android:exported="true">
