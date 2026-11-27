@@ -62,17 +62,6 @@ private fun dispatchVar(
         ?.let { handler(it.item) }
 }
 
-private val SYMBOLS = mapOf(
-    "pi" to "π", "cdot" to "·", "times" to "×", "div" to "÷",
-    "alpha" to "α", "beta" to "β", "gamma" to "γ", "delta" to "δ", "Delta" to "Δ",
-    "theta" to "θ", "Theta" to "Θ", "lambda" to "λ", "mu" to "μ", "nu" to "ν",
-    "rho" to "ρ", "sigma" to "σ", "tau" to "τ", "phi" to "φ", "omega" to "ω",
-    "Omega" to "Ω", "varepsilon" to "ε", "infty" to "∞", "pm" to "±", "mp" to "∓",
-    "approx" to "≈", "leq" to "≤", "geq" to "≥", "neq" to "≠",
-    "to" to "→", "rightarrow" to "→", "leftarrow" to "←",
-    "partial" to "∂", "nabla" to "∇", "circ" to "°"
-)
-
 private fun renderLatex(latex: String, vars: Set<String>, baseSize: TextUnit): AnnotatedString =
     LatexParser(latex, vars, baseSize).parse()
 
@@ -160,7 +149,23 @@ private class LatexParser(val s: String, val vars: Set<String>, val baseSize: Te
                 }
             }
             cmd == "quad" || cmd == "qquad" -> b.append("   ")
-            else -> b.append(SYMBOLS[cmd] ?: cmd)
+            else -> {
+                val sym = ExprEngine.LATEX_SYMBOLS[cmd]
+                if (sym != null && vars.contains(cmd)) {
+                    b.pushStringAnnotation("var", cmd)
+                    b.pushStyle(
+                        SpanStyle(
+                            color = Color.White,
+                            textDecoration = TextDecoration.Underline
+                        )
+                    )
+                    b.append(sym)
+                    b.pop()
+                    b.pop()
+                } else {
+                    b.append(sym ?: cmd)
+                }
+            }
         }
     }
 
