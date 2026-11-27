@@ -13,6 +13,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -299,8 +300,10 @@ fun SolverScreen(onClose: () -> Unit) {
             modifier = Modifier.weight(1f).fillMaxWidth(),
             label = "phase",
             transitionSpec = {
-                (fadeIn(tween(350)) + slideInVertically(tween(350)) { it / 4 }) togetherWith
+                ContentTransform(
+                    fadeIn(tween(350)) + slideInVertically(tween(350)) { it / 4 },
                     fadeOut(tween(200))
+                )
             }
         ) { target ->
             Box(

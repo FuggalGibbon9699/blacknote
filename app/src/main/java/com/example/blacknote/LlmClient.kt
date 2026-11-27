@@ -17,7 +17,7 @@ object LlmClient {
         val endpoint: String
     )
 
-    private const val SYSTEM_PROMPT = """
+    private val SYSTEM_PROMPT = """
         You are a concise physics and engineering problem solver.
         For the user's problem, reply in Markdown-lite with exactly these sections:
         1. **Topic** — the branch of physics/engineering and the key idea, one line.
