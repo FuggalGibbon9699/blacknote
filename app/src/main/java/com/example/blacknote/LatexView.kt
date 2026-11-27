@@ -12,7 +12,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.BaselineShift
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.buildAnnotatedString
@@ -80,9 +79,9 @@ private fun renderLatex(latex: String, vars: Set<String>, baseSize: TextUnit): A
 private class LatexParser(val s: String, val vars: Set<String>, val baseSize: TextUnit) {
     var i = 0
 
-    fun parse(): AnnotatedString = buildAnnotatedString { parseSeq(false) }
+    fun parse(): AnnotatedString = buildAnnotatedString { parseSeq(this, false) }
 
-    private fun AnnotatedString.Builder.parseSeq(inGroup: Boolean) {
+    private fun parseSeq(b: AnnotatedString.Builder, inGroup: Boolean) {
         while (i < s.length) {
             when (val c = s[i]) {
                 '}' -> {
@@ -91,58 +90,48 @@ private class LatexParser(val s: String, val vars: Set<String>, val baseSize: Te
                 }
                 '{' -> {
                     i++
-                    parseSeq(true)
+                    parseSeq(b, true)
                 }
-                '\\' -> parseCommand()
+                '\\' -> parseCommand(b)
                 '^' -> {
                     i++
-                    pushStyle(
-                        SpanStyle(
-                            baselineShift = BaselineShift.Superscript,
-                            fontSize = baseSize * 0.65f
-                        )
-                    )
-                    append(parseGroup())
-                    pop()
+                    b.pushStyle(SpanStyle(fontSize = baseSize * 0.65f))
+                    b.append(parseGroup())
+                    b.pop()
                 }
                 '_' -> {
                     i++
-                    pushStyle(
-                        SpanStyle(
-                            baselineShift = BaselineShift.Subscript,
-                            fontSize = baseSize * 0.65f
-                        )
-                    )
-                    append(parseGroup())
-                    pop()
+                    b.pushStyle(SpanStyle(fontSize = baseSize * 0.65f))
+                    b.append(parseGroup())
+                    b.pop()
                 }
                 else -> if (c.isLetter()) {
                     val start = i
                     while (i < s.length && s[i].isLetter()) i++
                     val word = s.substring(start, i)
                     if (vars.contains(word)) {
-                        pushStringAnnotation("var", word)
-                        pushStyle(
+                        b.pushStringAnnotation("var", word)
+                        b.pushStyle(
                             SpanStyle(
                                 color = Color.White,
                                 textDecoration = TextDecoration.Underline
                             )
                         )
-                        append(word)
-                        pop()
-                        pop()
+                        b.append(word)
+                        b.pop()
+                        b.pop()
                     } else {
-                        append(word)
+                        b.append(word)
                     }
                 } else {
-                    append(c.toString())
+                    b.append(c.toString())
                     i++
                 }
             }
         }
     }
 
-    private fun AnnotatedString.Builder.parseCommand() {
+    private fun parseCommand(b: AnnotatedString.Builder) {
         i++
         val start = i
         while (i < s.length && s[i].isLetter()) i++
@@ -151,27 +140,27 @@ private class LatexParser(val s: String, val vars: Set<String>, val baseSize: Te
             cmd == "frac" -> {
                 val num = parseGroup()
                 val den = parseGroup()
-                pushStyle(SpanStyle(fontSize = baseSize * 0.75f))
-                append(num)
-                append("/")
-                append(den)
-                pop()
+                b.pushStyle(SpanStyle(fontSize = baseSize * 0.75f))
+                b.append(num)
+                b.append("/")
+                b.append(den)
+                b.pop()
             }
             cmd == "sqrt" -> {
-                append("√(")
-                append(parseGroup())
-                append(")")
+                b.append("√(")
+                b.append(parseGroup())
+                b.append(")")
             }
-            cmd == "text" || cmd == "mathrm" -> append(parseGroupRaw())
+            cmd == "text" || cmd == "mathrm" -> b.append(parseGroupRaw())
             cmd.isEmpty() -> {
                 if (i < s.length) {
                     val c = s[i]
                     i++
-                    append(if (c == ',' || c == ';' || c == '!' || c == ' ') " " else c.toString())
+                    b.append(if (c == ',' || c == ';' || c == '!' || c == ' ') " " else c.toString())
                 }
             }
-            cmd == "quad" || cmd == "qquad" -> append("   ")
-            else -> append(SYMBOLS[cmd] ?: cmd)
+            cmd == "quad" || cmd == "qquad" -> b.append("   ")
+            else -> b.append(SYMBOLS[cmd] ?: cmd)
         }
     }
 
@@ -193,7 +182,7 @@ private class LatexParser(val s: String, val vars: Set<String>, val baseSize: Te
         }
         if (i < s.length && s[i] == '\\') {
             val sub = LatexParser(s.substring(i), vars, baseSize)
-            val ann = buildAnnotatedString { sub.parseCommand() }
+            val ann = buildAnnotatedString { sub.parseCommand(this) }
             i += sub.i
             return ann
         }

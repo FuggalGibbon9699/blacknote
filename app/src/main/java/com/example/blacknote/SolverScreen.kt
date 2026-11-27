@@ -23,7 +23,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -61,6 +61,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -130,9 +131,9 @@ fun SolverScreen() {
         val target = solvedFor ?: (eq.first as? Expr.Var)?.name
         try {
             val value = if (target != null && solvedExpr != null) {
-                ExprEngine.eval(ExprEngine.substitute(solvedExpr!!, values))
+                ExprEngine.eval(ExprEngine.substitute(solvedExpr!!, values), emptyMap())
             } else {
-                ExprEngine.eval(ExprEngine.substitute(eq.second, values))
+                ExprEngine.eval(ExprEngine.substitute(eq.second, values), emptyMap())
             }
             val unit = sol.variables.find { it.symbol == target }?.unit ?: ""
             result = "$target = ${ExprEngine.formatNum(value)} $unit".trim()
@@ -506,10 +507,12 @@ private fun AnswerView(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 6.dp)
-                    .combinedClickable(
-                        onClick = { onVarTap(v.symbol) },
-                        onLongClick = { onVarLongPress(v.symbol) }
-                    ),
+                    .pointerInput(Unit) {
+                        detectTapGestures(
+                            onTap = { onVarTap(v.symbol) },
+                            onLongPress = { onVarLongPress(v.symbol) }
+                        )
+                    },
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
