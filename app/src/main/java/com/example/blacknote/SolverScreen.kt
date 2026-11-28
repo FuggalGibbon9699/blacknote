@@ -472,13 +472,15 @@ private fun AnswerView(
     onVarLongPress: (String) -> Unit
 ) {
     if (solution == null) return
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-    ) {
+    Column(modifier = Modifier.fillMaxSize()) {
         if (solution.raw != null) {
-            MarkdownText(text = solution.raw, baseSize = 15.sp)
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                MarkdownText(text = solution.raw, baseSize = 15.sp)
+            }
             return
         }
         Text(
@@ -486,45 +488,51 @@ private fun AnswerView(
             color = Color.White,
             fontSize = 16.sp
         )
-        Spacer(Modifier.height(28.dp))
-        AnimatedContent(
-            targetState = formulaLatex,
-            label = "formula",
-            transitionSpec = {
-                ContentTransform(
-                    fadeIn(tween(300)) + scaleIn(tween(300)),
-                    fadeOut(tween(200)) + scaleOut(tween(200))
-                )
-            }
-        ) { latex ->
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.Center
-            ) {
-                LatexFormula(
-                    latex = latex,
-                    variables = solution.variables.map { it.symbol }.toSet(),
-                    fontSize = 30.sp,
-                    onVarTap = onVarTap,
-                    onVarLongPress = onVarLongPress
-                )
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                AnimatedContent(
+                    targetState = formulaLatex,
+                    label = "formula",
+                    transitionSpec = {
+                        ContentTransform(
+                            fadeIn(tween(300)) + scaleIn(tween(300)),
+                            fadeOut(tween(200)) + scaleOut(tween(200))
+                        )
+                    }
+                ) { latex ->
+                    LatexFormula(
+                        latex = latex,
+                        variables = solution.variables.map { it.symbol }.toSet(),
+                        fontSize = 30.sp,
+                        onVarTap = onVarTap,
+                        onVarLongPress = onVarLongPress,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                AnimatedVisibility(visible = result != null) {
+                    Column {
+                        Spacer(Modifier.height(16.dp))
+                        Text(
+                            text = result ?: "",
+                            color = Color.White,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
             }
         }
-        AnimatedVisibility(visible = result != null) {
-            Column {
-                Spacer(Modifier.height(16.dp))
-                Text(
-                    text = result ?: "",
-                    color = Color.White,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        }
-        Spacer(Modifier.height(28.dp))
-        solution.variables.forEach { v ->
+        Column(
+            modifier = Modifier.verticalScroll(rememberScrollState())
+        ) {
+            solution.variables.forEach { v ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -551,16 +559,18 @@ private fun AnswerView(
                 )
             }
         }
-        if (solution.estimate.isNotBlank()) {
+            if (solution.estimate.isNotBlank()) {
+                Spacer(Modifier.height(12.dp))
+                Text(text = solution.estimate, color = Color.Gray, fontSize = 13.sp)
+            }
             Spacer(Modifier.height(12.dp))
-            Text(text = solution.estimate, color = Color.Gray, fontSize = 13.sp)
+            Text(
+                text = "tap a variable for its value — hold it to rearrange the equation",
+                color = Color.DarkGray,
+                fontSize = 12.sp
+            )
+            Spacer(Modifier.height(12.dp))
         }
-        Spacer(Modifier.height(12.dp))
-        Text(
-            text = "tap a variable for its value — hold it to rearrange the equation",
-            color = Color.DarkGray,
-            fontSize = 12.sp
-        )
     }
 }
 
