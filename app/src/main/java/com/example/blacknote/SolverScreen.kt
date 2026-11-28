@@ -145,15 +145,17 @@ fun SolverScreen() {
             }
             val lVars = ExprEngine.varsOf(eq.first)
             val rVars = ExprEngine.varsOf(eq.second)
+            val firstVar = eq.first as? Expr.Var
+            val secondVar = eq.second as? Expr.Var
             when {
-                rVars.isNotEmpty() && rVars.all { values.containsKey(it) } && eq.first is Expr.Var ->
+                rVars.isNotEmpty() && rVars.all { values.containsKey(it) } && firstVar != null ->
                     result = resultText(
-                        eq.first.name,
+                        firstVar.name,
                         ExprEngine.eval(ExprEngine.substitute(eq.second, values), emptyMap())
                     )
-                lVars.isNotEmpty() && lVars.all { values.containsKey(it) } && eq.second is Expr.Var ->
+                lVars.isNotEmpty() && lVars.all { values.containsKey(it) } && secondVar != null ->
                     result = resultText(
-                        eq.second.name,
+                        secondVar.name,
                         ExprEngine.eval(ExprEngine.substitute(eq.first, values), emptyMap())
                     )
             }
